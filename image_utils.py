@@ -3,9 +3,6 @@ import numpy as np
 import pyocr
 from PIL import Image
 
-base_w = 1920
-base_h = 1080
-
 
 def cv2pil(image):
     """ OpenCV型 -> PIL型 """
@@ -43,7 +40,7 @@ def otsu(img):
 
 
 def get_weapon_info(img, H, W):
-    weapon = img[H * int(950 / base_h) :, W * int(1500 / base_w) :]
+    weapon = img[950:, 1500:]
     weapon_name1 = weapon[80:110, 50:175]
     weapon_bullet1 = weapon[5:50, 255:290]
 
@@ -70,7 +67,7 @@ def get_damage_info(img):
     return info
 
 
-def image_editer(img, percent, hits, total, factor=0.8):
+def image_editer(img, percent, total, hits, factor=0.8):
     font_sizes = [4, 3, 2, 5]
     font_sizes = [3, 2, 1, 3]
     h, w, _ = img.shape
@@ -85,7 +82,7 @@ def image_editer(img, percent, hits, total, factor=0.8):
     img = cv2.putText(
         img,
         str(int(percent * 100)) + "%",
-        (resize_w + int(w * 50 / base_w), int(h * 200 / base_w)),
+        (resize_w + 50, 200),
         cv2.FONT_HERSHEY_SIMPLEX,
         font_sizes[0],
         (0, 0, 0),
@@ -94,15 +91,15 @@ def image_editer(img, percent, hits, total, factor=0.8):
     img = cv2.putText(
         img,
         f"{str(len(hits))}/{str(len(total))}",
-        (resize_w + int(w * 50 / base_w), int(h * 350 / base_h)),
+        (resize_w + 50, 350),
         cv2.FONT_HERSHEY_SIMPLEX,
         font_sizes[1],
         (0, 0, 0),
         thickness=5,
     )
     print_num = 5
-    for i, t in enumerate(total[-print_num:]):
-        if t in hits:
+    for i, t in enumerate(total[-print_num:][::-1]):
+        if t in hits or t + 1 in hits or t + 2 in hits or t + 3 in hits:
             x = ":HIT"
         else:
             x = ":MISS"
@@ -111,8 +108,8 @@ def image_editer(img, percent, hits, total, factor=0.8):
             img,
             f"{t}{x}",
             (
-                resize_w + int(w * 50 / base_w),
-                int(h * 450 / base_h) + i * int(h * 100 / base_h),
+                resize_w + 50,
+                450 + i * 100,
             ),
             cv2.FONT_HERSHEY_SIMPLEX,
             font_sizes[2],
@@ -123,7 +120,7 @@ def image_editer(img, percent, hits, total, factor=0.8):
     img = cv2.putText(
         img,
         "wingman hit counter",
-        (int(w * 100 / base_w), resize_h + int(h * 150 / base_h)),
+        (100, resize_h + 150),
         cv2.FONT_HERSHEY_SIMPLEX,
         font_sizes[3],
         (0, 0, 0),
@@ -131,3 +128,31 @@ def image_editer(img, percent, hits, total, factor=0.8):
     )
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     return img
+
+
+def str_to_number(x):
+    if x in ["g", "B", "8B", "gg", "a)", "Bg", "8g", "is}"]:
+        x = "8"
+    elif x in ["y", "Y", "yy"]:
+        x = "4"
+    elif x[0] in ["Q", "A"]:
+        x = "0"
+    elif x in ["L", "lu", "=e", "l"]:
+        x = "1"
+    elif x in ["oS"]:
+        x = "5"
+    elif x in ["G", "é"]:
+        x = "6"
+    elif x in ["i", "?"]:
+        x = "7"
+    elif x in ["e", "§", "s", "S"]:
+        x = "2"
+    elif x in ["N"]:
+        x = "11"
+    return x
+
+
+def str_to_number2(x):
+    if x in ["14d"]:
+        x = "114"
+    return x

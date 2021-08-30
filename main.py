@@ -19,35 +19,40 @@ def main():
     args = get_arg()
     cap = cv2.VideoCapture(args.file_path)
     save_path = "output/"
-    frame = 0
-    start_frame = 10000  # 9000
-    start_frame += 5400
-    start_frame = 0
-    max_frame = 30
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    erode = True
-    num_charactors = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-    shoot_manager = ShootManager()
 
     output_name = "sample_video.mp4"
+    start_frame = 90
+    # start_frame += 390
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    all_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     print(save_path + output_name)
     video_writer = cv2.VideoWriter(save_path + output_name, fourcc, fps, (W, H))
 
+    num_charactors = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    max_frame = all_frames
+    # max_frame = 30
+    erode = True
     pre_damage = 108  # 76# 0
     digit = 3  # 2# 1
     pbar = tqdm.tqdm(total=max_frame)
+    shoot_manager = ShootManager()
 
+    frame = 0
     while cap.isOpened():
         ret, img = cap.read()
         if not ret:
+            print("finish")
             break
+        img = cv2.resize(img, (1920, 1080))
         src_img = img.copy()
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
         cropped_img = image_utils.get_weapon_info(img, H, W)
         cropped_img["weapon_bullet1"] = image_utils.otsu(cropped_img["weapon_bullet1"])
         cropped_img["weapon_bullet1"] = np.where(
@@ -62,7 +67,10 @@ def main():
                     cropped_img["weapon_bullet1"], kernel, borderValue=255
                 )
             weapon_bullet1 = image_utils.get_text(
-                cropped_img["weapon_bullet1"], lang="eng", layout=7
+                # cropped_img["weapon_bullet1"], lang="eng", layout=6
+                cropped_img["weapon_bullet1"],
+                lang="eng",
+                layout=7,
             )
             weapon_bullet1 = weapon_bullet1[0]
 
@@ -107,14 +115,15 @@ def main():
                     dm_text = pre_damage
 
             if pre_damage > dm_text:
-                if pre_damage - 1 == dm_text:
-                    dm_text = pre_damage
-                else:
-                    print(dm_text_src)
-                    print("pre", pre_damage)
-                    print("damage", dm_text)
-                    print("damage decrease")
-                    break
+                dm_text = pre_damage
+                # if pre_damage - 1 == dm_text:
+                #     dm_text = pre_damage
+                # else:
+                #     print(dm_text_src)
+                #     print("pre", pre_damage)
+                #     print("damage", dm_text)
+                #     print("damage decrease")
+                #     break
 
             if pre_damage + 100 < dm_text:
                 dm_text = pre_damage
@@ -129,7 +138,7 @@ def main():
         frame += 1
         bullet, hits, percent = shoot_manager.get_hit_percentage()
         edit_img = image_utils.image_editer(src_img, percent, bullet, hits)
-        # edit_img = cv2.cvtColor(edit_img, cv2.COLOR_RGB2BGR)
+        edit_img = cv2.resize(edit_img, (W, H))
 
         video_writer.write(edit_img)
         pbar.update(1)
