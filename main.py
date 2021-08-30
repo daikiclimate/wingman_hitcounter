@@ -1,6 +1,7 @@
 import argparse
 
 import cv2
+import moviepy.editor as mp
 import numpy as np
 import tqdm
 
@@ -22,7 +23,6 @@ def main():
 
     output_name = "sample_video.mp4"
     start_frame = 90
-    # start_frame += 390
     cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -35,7 +35,7 @@ def main():
 
     num_charactors = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     max_frame = all_frames
-    # max_frame = 30
+    max_frame = 120
     erode = True
     pre_damage = 108  # 76# 0
     digit = 3  # 2# 1
@@ -149,17 +149,45 @@ def main():
     video_writer.release()
     cv2.destroyAllWindows()
 
-    postprocess(save_path + output_name)
+    postprocess(
+        save_path,
+        output_name,
+        args.file_path,
+        (start_frame / fps, (start_frame + max_frame) / fps),
+    )
 
 
-def postprocess(path):
+def postprocess(save_path, output_name, src_path, video_range):
     import ffmpeg
+
+    path = save_path + output_name
 
     (
         ffmpeg.input(path)
         .output(path[:-4] + "_encoded.mp4", vcodec="libx264", crf=23, preset="slow")
         .run()
     )
+    extract_and_setaudio(
+        src_video=src_path,
+        output_video=path[:-4] + "_encoded.mp4",
+        out_file=path[:-4] + "_encoded_audio.mp4",
+        out_audio=path[:-4] + "_audio.mp3",
+        video_range=video_range,
+    )
+
+
+def extract_and_setaudio(
+    src_video, output_video, out_file, out_audio="tmp.mp3", video_range=(0, 0)
+):
+    clip_in = mp.VideoFileClip(src_video)
+    print(video_range)
+    clip_in = clip_in.subclip(int(video_range[0]), int(video_range[1]))
+    # clip_in = clip_in.subclip(video_range[0], video_range[1])
+
+    clip_in.audio.write_audiofile(out_audio)
+
+    clip_out = mp.VideoFileClip(output_video).subclip()
+    clip_out.write_videofile(out_file, audio=out_audio)
 
 
 if __name__ == "__main__":
