@@ -22,7 +22,7 @@ def main():
     save_path = "output/"
 
     output_name = "sample_video.mp4"
-    start_frame = 90
+    start_frame = 0  # 90
     cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -34,10 +34,11 @@ def main():
     video_writer = cv2.VideoWriter(save_path + output_name, fourcc, fps, (W, H))
 
     num_charactors = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-    max_frame = all_frames
-    max_frame = 120
+    max_frame = all_frames - start_frame
+    # max_frame = 150
     erode = True
     pre_damage = 108  # 76# 0
+    pre_kill_info = "0"
     digit = 3  # 2# 1
     pbar = tqdm.tqdm(total=max_frame)
     shoot_manager = ShootManager()
@@ -60,7 +61,8 @@ def main():
         ).astype(np.uint8)
 
         weapon_name1 = image_utils.get_text(cropped_img["weapon_name1"])
-        if weapon_name1 == "ウィングマン":
+        weapon_name1 = weapon_name1[-6:]
+        if weapon_name1 == "ウィングマン" or weapon_name1 == "ヴィングマン":
             if erode:
                 kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
                 cropped_img["weapon_bullet1"] = cv2.dilate(
@@ -127,9 +129,19 @@ def main():
 
             if pre_damage + 100 < dm_text:
                 dm_text = pre_damage
-            dm_text = shoot_manager.fix_damage(dm_text)
 
             pre_damage = dm_text
+            kill_img = image_utils.get_kill_info(img)
+            kill_img = cv2.bitwise_not(image_utils.otsu(kill_img))
+            kill_info = image_utils.get_text(kill_img, lang="eng", layout=7)
+            if len(kill_info) > 0:
+                kill_info = image_utils.str_to_number(kill_info)
+            else:
+                kill_info = "0"
+
+            if pre_kill_info == kill_info:
+                dm_text = shoot_manager.fix_damage(dm_text)
+            pre_kill_info = kill_info
 
             shoot_manager.add_info(weapon_bullet1, dm_text)
 
@@ -180,14 +192,15 @@ def extract_and_setaudio(
     src_video, output_video, out_file, out_audio="tmp.mp3", video_range=(0, 0)
 ):
     clip_in = mp.VideoFileClip(src_video)
-    print(video_range)
-    clip_in = clip_in.subclip(int(video_range[0]), int(video_range[1]))
+    clip_in = clip_in.subclip(video_range[0], video_range[1])
+    # clip_in = clip_in.subclip(int(video_range[0]), int(video_range[1]))
     # clip_in = clip_in.subclip(video_range[0], video_range[1])
 
     clip_in.audio.write_audiofile(out_audio)
 
     clip_out = mp.VideoFileClip(output_video).subclip()
     clip_out.write_videofile(out_file, audio=out_audio)
+    print(out_file)
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ def get_damage_info(img):
     return info
 
 
-def image_editer(img, percent, total, hits, factor=0.8):
+def image_editer(img, percent, total, hits, factor=0.8, n_frame=11):
     font_sizes = [4, 3, 2, 5]
     font_sizes = [3, 2, 1, 3]
     h, w, _ = img.shape
@@ -99,7 +99,10 @@ def image_editer(img, percent, total, hits, factor=0.8):
     )
     print_num = 5
     for i, t in enumerate(total[-print_num:][::-1]):
-        if t in hits or t + 1 in hits or t + 2 in hits or t + 3 in hits:
+        hit_or_miss = any([j + t in hits for j in range(n_frame)])
+        # neet 7
+        # if t in hits or t + 1 in hits or t + 2 in hits or t + 3 in hits:
+        if hit_or_miss:
             x = ":HIT"
         else:
             x = ":MISS"
@@ -135,7 +138,7 @@ def str_to_number(x):
         x = "8"
     elif x in ["y", "Y", "yy"]:
         x = "4"
-    elif x[0] in ["Q", "A"]:
+    elif x[0] in ["Q", "A", "o"]:
         x = "0"
     elif x in ["L", "lu", "=e", "l"]:
         x = "1"
@@ -156,3 +159,7 @@ def str_to_number2(x):
     if x in ["14d"]:
         x = "114"
     return x
+
+
+def get_kill_info(img):
+    return img[95:120, 1665:1685]
